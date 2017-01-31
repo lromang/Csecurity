@@ -1,12 +1,3 @@
-##################################################
-## Observaciones Generales:
-## - El registro de los datos no está estandarizado
-##   la sintaxis es distinta para clases iguales.
-## - Muchos datos faltantes:
-##      averiguación previa,
-##      estudios_pr
-##################################################
-
 ##------------------------------
 ## Libraries
 ##------------------------------
@@ -21,6 +12,15 @@ library(ggplot2)
 ##################################################
 ### Detalle
 ##################################################
+##################################################
+## Observaciones Generales:
+## - El registro de los datos no está estandarizado
+##   la sintaxis es distinta para clases iguales.
+## - Muchos datos faltantes:
+##      averiguación previa,
+##      estudios_pr
+##################################################
+
 
 ##------------------------------
 ## Read in datasets
@@ -73,6 +73,9 @@ scale_size_continuous(name = "Cantidad",
                       breaks = c(1, 2, 5, 10, 14),
                       range = c(1, 6)) +
     ylab("Entidad") + xlab("Año")
+p1
+ggsave("../graphs/crimeEvolution.png",
+       p1, width = 20, height = 12)
 
 ##
 ## Esta gráfica nos dice la relación
@@ -173,6 +176,9 @@ scale_size_continuous(name = "Cantidad",
                       range = c(2, 6)) +
     ylab("Entidad") + xlab("Año")
 p3
+ggsave("../graphs/crimeEvolutionType.png",
+       p3, width = 20, height = 12)
+
 ##---------------------------------
 ## Vis 4: Caracterización detenciones
 ## por número de víctimas
@@ -218,6 +224,9 @@ scale_size_continuous(name = "Victimas",
                       range = c(2, 6)) +
     ylab("Entidad") + xlab("Año")
 p4
+ggsave("../graphs/crimeEvolutionTypeVictims.png",
+       p4, width = 20, height = 12)
+
 ##
 ## Uno esperaría ver las figuras más grandes
 ## cómo las que tienen mayor número de detenidos
@@ -343,3 +352,177 @@ vis6 <- vis6[, .N, by = c("año","estatus",
 ##################################################
 ### ARES
 ##################################################
+##################################################
+## Observaciones Generales:
+## - Insertando caracteres ocultos ( 302 240 )
+## - Sería bueno tener datos de los que no son
+##   delítos para ver si hay una diferencia clara
+##   en su comportamiento.
+##################################################
+ares <- fread("../data/ares_clean.csv")
+names(ares)  <- str_replace_all(names(ares), " ", "_")
+unique_users <- ares[, .N, by = ip_address]
+summary(unique_users$N)
+##################################################
+## Structure dates
+## First seen
+datefs <- ares$date_first_seen
+datefs <- laply(datefs, function(t) t <- {
+    date  <- str_split(t, "/")[[1]]
+    month <-  if(str_length(date[1]) < 2) paste0("0", date[1]) else date[1]
+    day   <-  if(str_length(date[2]) < 2) paste0("0", date[2]) else date[2]
+    paste(date[3], month, day, sep =  "-")
+})
+ares$date_first_seen <- as.Date(datefs)
+## Last seen
+datefs <- ares$date_last_seen
+datefs <- laply(datefs, function(t) t <- {
+    date  <- str_split(t, "/")[[1]]
+    month <-  if(str_length(date[1]) < 2) paste0("0", date[1]) else date[1]
+    day   <-  if(str_length(date[2]) < 2) paste0("0", date[2]) else date[2]
+    paste(date[3], month, day, sep =  "-")
+})
+ares$date_last_seen <- as.Date(datefs)
+##################################################
+## Users per Day
+##################################################
+ares$wday_first_seen <- factor(weekdays(ares$date_first_seen),
+                              levels = c("Monday", "Tuesday",
+                                         "Wednesday", "Thursday",
+                                         "Friday", "Saturday",
+                                         "Sunday"))
+ares$wday_last_seen <- factor(weekdays(ares$date_last_seen),
+                                   levels = c("Monday", "Tuesday",
+                                         "Wednesday", "Thursday",
+                                         "Friday", "Saturday",
+                                         "Sunday"))
+## Days first seen hits
+uday <- ares[, sum(hits), by = c("wday_first_seen",
+                                "estado")]
+p1.a <- ggplot(data = uday,
+              aes(x   = estado,
+                  y   = V1,
+           fill = wday_first_seen)) + geom_bar(stat="identity",
+                                               position = "dodge") +
+    theme(panel.background = element_blank(),
+          axis.title = element_text(face = "bold",
+                                    color = "#212121"),
+          axis.text = element_text(angle = 90),
+          legend.title = element_text(face = "bold",
+                                      color = "#212121"),
+          panel.grid.major = element_line(colour = "#BDBDBD",
+                                          linetype = "dotted"),
+          panel.grid.minor = element_line(colour = "#E0E0E0",
+                                          linetype = "dotted")) +
+    ylab("Hits") + xlab("Entidad")
+p1.a
+ggsave("../graphs/pornStateHits.png",
+       p1.a, width = 20, height = 12)
+
+## Days first seen counts
+uday <- ares[, .N, by = c("wday_first_seen",
+                                "estado")]
+
+p.1.1.a <- ggplot(data = uday,
+              aes(x   = estado,
+                  y   = N,
+           fill = wday_first_seen)) + geom_bar(stat="identity",
+                                               position = "dodge") +
+    theme(panel.background = element_blank(),
+          axis.title = element_text(face = "bold",
+                                    color = "#212121"),
+          axis.text = element_text(angle = 90),
+          legend.title = element_text(face = "bold",
+                                      color = "#212121"),
+          panel.grid.major = element_line(colour = "#BDBDBD",
+                                          linetype = "dotted"),
+          panel.grid.minor = element_line(colour = "#E0E0E0",
+                                          linetype = "dotted")) +
+    ylab("Conexiones") + xlab("Entidad")
+p.1.1.a
+## Days last seen hits
+uday <- ares[, sum(hits), by = c("wday_last_seen",
+                                "estado")]
+p2.a <- ggplot(data = uday,
+              aes(x   = estado,
+                  y   = V1,
+           fill = wday_last_seen)) + geom_bar(stat="identity",
+                                               position = "dodge") +
+    theme(panel.background = element_blank(),
+          axis.title = element_text(face = "bold",
+                                    color = "#212121"),
+          axis.text = element_text(angle = 90),
+          legend.title = element_text(face = "bold",
+                                      color = "#212121"),
+          panel.grid.major = element_line(colour = "#BDBDBD",
+                                          linetype = "dotted"),
+          panel.grid.minor = element_line(colour = "#E0E0E0",
+                                          linetype = "dotted")) +
+    ylab("Hits") + xlab("Entidad")
+p2.a
+## Days last seen counts
+uday <- ares[, .N, by = c("wday_last_seen",
+                                "estado")]
+p.2.1.a <- ggplot(data = uday,
+              aes(x   = estado,
+                  y   = N,
+           fill = wday_last_seen)) + geom_bar(stat="identity",
+                                               position = "dodge") +
+    theme(panel.background = element_blank(),
+          axis.title = element_text(face = "bold",
+                                    color = "#212121"),
+          axis.text = element_text(angle = 90),
+          legend.title = element_text(face = "bold",
+                                      color = "#212121"),
+          panel.grid.major = element_line(colour = "#BDBDBD",
+                                          linetype = "dotted"),
+          panel.grid.minor = element_line(colour = "#E0E0E0",
+                                          linetype = "dotted")) +
+    ylab("Conexiones") + xlab("Entidad")
+p.2.1.a
+## Time connected
+ares$timeCon <- difftime(ares$date_last_seen, ares$date_first_seen,
+                        units = "hours")
+p3.a <- ggplot(data = ares,
+              aes(x   = timeCon)) + geom_histogram() +
+    facet_wrap(~  zona) +
+    theme(panel.background = element_blank(),
+          axis.title = element_text(face = "bold",
+                                    color = "#212121"),
+          axis.text = element_text(angle = 90),
+          legend.title = element_text(face = "bold",
+                                      color = "#212121"),
+          panel.grid.major = element_line(colour = "#BDBDBD",
+                                          linetype = "dotted"),
+          panel.grid.minor = element_line(colour = "#E0E0E0",
+                                          linetype = "dotted")) +
+    ylab("Observacioens") + xlab("Intervalo entre conexiones")
+p3.a
+ggsave("../graphs/interConZone.png",
+       p3.a, width = 20, height = 12)
+
+## Tiempo entre conexiones, número de hits y número de archivos
+p4.a <- ggplot(data = ares, aes(x = timeCon,
+                        y = hits,
+                        size = ._files,
+                        col  = zona)) + geom_point() + geom_jitter() +
+    theme(panel.background = element_blank(),
+          axis.title = element_text(face = "bold",
+                                    color = "#212121"),
+          legend.title = element_text(face = "bold",
+                                    color = "#212121"),
+          panel.grid.major = element_line(colour = "#BDBDBD",
+                                          linetype = "dotted"),
+          panel.grid.minor = element_line(colour = "#E0E0E0",
+                                          linetype = "dotted")) +
+    scale_colour_manual(name = "Zona",
+                        values = c("#00cc99",
+                                   "#9E9E9E",
+                                   "#212121",
+                                   "#ff6666",
+                                   "#00C853")) +
+scale_size_continuous(name = "Número de Archivos",
+                      breaks = c(1, 2, 5, 10, 14),
+                      range = c(2, 6)) +
+    ylab("Tiempo entre Conexiones") + xlab("Hits")
+p4.a
