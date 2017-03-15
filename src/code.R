@@ -2,6 +2,7 @@
 ## Libraries
 ##------------------------------
 ## Data manipulation
+library(data.table)
 library(plyr)
 library(dtplyr)
 ## Strings manipulation
@@ -48,7 +49,7 @@ names(data) <- tolower(names(data)) %>%
 vis1 <- data[str_detect(data$estatus, "[A-Z]"),]
 vis1 <- vis1[, .N, by = c("año", "entidad_reportada_poa",
                          "estatus")]
-
+vis1 <- vis1[vis1$año > 2011]
 p1 <- ggplot(vis1,
        aes(y    = entidad_reportada_poa,
            x    = año,
@@ -146,7 +147,7 @@ vis3 <- vis3[str_detect(vis3$clasificación_del_delito, "[A-Z]"),]
 vis3 <- vis3[, .N, by = c("año","estatus",
                          "entidad_reportada_poa",
                          "clasificación_del_delito")]
-
+vis3 <- vis3[vis3$año > 2011]
 p3 <- ggplot(vis3,
        aes(y    = entidad_reportada_poa,
            x    = año,
@@ -195,6 +196,7 @@ vis4 <- vis4[, sum(readr::parse_number(total_vict)),
                    "entidad_reportada_poa",
                    "clasificación_del_delito")]
 names(vis4)[5] <- "total_victimas"
+vis4 <- vis4[vis4$año > 2011]
 p4 <- ggplot(vis4,
        aes(y    = entidad_reportada_poa,
            x    = año,
@@ -399,9 +401,16 @@ ares$wday_last_seen <- factor(weekdays(ares$date_last_seen),
 ## Days first seen hits
 uday <- ares[, sum(hits), by = c("wday_first_seen",
                                 "estado")]
+## Read in population data
+popEnt <- read.csv("../data/pop.csv", header = FALSE)
+names(popEnt) <- c("estado", "pop")
+
+uday <- merge(uday, popEnt, by = "estado")
+
+## PLOT
 p1.a <- ggplot(data = uday,
               aes(x   = estado,
-                  y   = V1,
+                  y   = V1/pop,
            fill = wday_first_seen)) + geom_bar(stat="identity",
                                                position = "dodge") +
     theme(panel.background = element_blank(),
@@ -414,9 +423,10 @@ p1.a <- ggplot(data = uday,
                                           linetype = "dotted"),
           panel.grid.minor = element_line(colour = "#E0E0E0",
                                           linetype = "dotted")) +
+    scale_fill_discrete(name = "Primera observación \n por semana") +
     ylab("Hits") + xlab("Entidad")
 p1.a
-ggsave("../graphs/pornStateHits.png",
+ggsave("../graphs/pornStateHitsponder.png",
        p1.a, width = 20, height = 12)
 
 ## Days first seen counts
